@@ -50,6 +50,12 @@ ns.parseExpression = function parseExpression(tokens, cursor, maxEnd, args /* in
       if(args && args.inGroup) break; //return { length: cursor - start, tree: groupedTokens };
       else throw new Error('unexpected "' + tokens[cursor].value + '" at ' + tokens[cursor].id);
     }
+    else if(tokens[cursor].type == 'descriptor-bracket' && args && args.inDescriptorBrackets) {
+      if(tokens[cursor].opening == false) break;
+      else throw new Error('unexpected opening descriptor bracket in expression at ' + tokens[cursor].id);
+    }
+    else if(tokens[cursor].type == 'descriptor-bracket' && tokens[cursor].opening == false)
+      throw new Error('unexpected closing descriptor bracket');
     var group = ns.parseGroup(tokens, cursor, end);
     if(group) {
       groupedTokens.push(group);
@@ -79,17 +85,26 @@ ns.parseExpression = function parseExpression(tokens, cursor, maxEnd, args /* in
   
   var alternatives = ns.parseAlternatives(repeatedTokens);
   
-  if(cursor == end && args && args.inGroup) throw new Error('unexpected end of line at ' + end);
+  if(cursor >= end && args && (args.inGroup || args.inDescriptorBrackets)) throw new Error('unexpected end of line at ' + end);
   return { type: 'expression', length: cursor - start, alternatives: alternatives };
 }
 
 ns.parseGroup = function parseGroup(tokens, begin, maxEnd) {
-  if(!(tokens[begin].type == 'operator' && (tokens[begin].value == '(' || tokens[begin].value == '['))) return;
+  if(!(tokens[begin].type == 'operator' && (tokens[begin].value == '(' || tokens[begin].value == '[')) 
+    && !(tokens[begin].type == 'descriptor-bracket' && tokens[begin].opening)) return;
   
   var isOptional = tokens[begin].value == '[';
-  var expression = ns.parseExpression(tokens, begin + 1, maxEnd, { inGroup: true });
+  var hasDescriptor = tokens[begin].type == 'descriptor-bracket';
+  var expression = ns.parseExpression(tokens, begin + 1, maxEnd, { inGroup: !hasDescriptor, inDescriptorBrackets: hasDescriptor });
   
-  return { type: 'group', expression: expression, isOptional: isOptional, length: expression.length + 2 };
+  var descriptor;
+  if(hasDescriptor) {
+    var descriptorToken = tokens[begin+expression.length+2];
+    if(descriptorToken.type =! 'identifier') throw new Error('descriptor identifier expected after ' + tokens[begin+expression.length+1].id);
+    else descriptor = descriptorToken.value;
+  }
+  
+  return { type: 'group', expression: expression, isOptional: isOptional, hasDescriptor: hasDescriptor, descriptor: descriptor, length: expression.length + 2 + 1*hasDescriptor };
 }
 
 ns.parseAlternatives = function parseAlternatives(tokens) {

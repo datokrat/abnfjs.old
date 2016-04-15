@@ -17,7 +17,7 @@ function Interpreter(grammar) {
   function lazyLoadPattern(name) {
     if(self.patterns[name.toLowerCase()]) return self.patterns[name.toLowerCase()];
     else if(self.grammar[name]) {
-      self.patterns[name.toLowerCase()] = self.createParser(self.grammar[name], self);
+      self.patterns[name.toLowerCase()] = self.createParser(self.grammar[name], true);
       return self.patterns[name.toLowerCase()];
     }
     else throw new Error('pattern not found: ' + name);
@@ -51,19 +51,19 @@ function Interpreter(grammar) {
     }
   }
   
-  this.createParser = function(grammar) {
+  this.createParser = function(grammar, explicitExpression) {
     var parserType = this.parserTypes[grammar.type];
-    if(parserType) return new parserType(grammar, this);
+    if(parserType) return new parserType(grammar, this, explicitExpression);
     else if(grammar.type === 'identifier') return this.getPattern(grammar.value);
     else throw new Error('unsupported grammar type: ' + grammar.type);
   }
 }
 
-function ExpressionParser(grammar, interpreter) {
+function ExpressionParser(grammar, interpreter, explicitExpression) {
   var items = [];
   var id = Math.random();
   function getItem(i) {
-    if((typeof items[i]) == 'function') return items[i]();
+    if((typeof items[i]) === 'function') return items[i]();
     else return items[i];
   }
   
@@ -89,7 +89,7 @@ function ExpressionParser(grammar, interpreter) {
         it.innerIterator = p.iterator;
         var alternative = grammar.alternatives[it.currentIndex];
         var name = (alternative.length == 1 && alternative[0].type == 'identifier') ?  alternative[0].value : undefined;
-        return { result: { type: 'alternative', alternativeIndex: it.currentIndex, name: name, value: p.result, length: p.result.length, str: p.result.str }, iterator: it };
+        return { result: { type: 'alternative', explicitExpression: explicitExpression, alternativeIndex: it.currentIndex, name: name, value: p.result, length: p.result.length, str: p.result.str }, iterator: it };
       }
       else {
         it.innerIterator = null;
@@ -112,7 +112,7 @@ function SequenceParser(grammar, interpreter) {
     if(grammar[i].type == 'identifier') {
       items[i] = function() { return interpreter.getPattern(this.value) }.bind(grammar[i]);
     }
-    else items[i] = interpreter.createParser(grammar[i], interpreter);
+    else items[i] = interpreter.createParser(grammar[i]);
   }
   
   this.parseNext = function(str, lastIterator) {
@@ -158,7 +158,7 @@ function SequenceParser(grammar, interpreter) {
 }
 
 function GroupParser(grammar, interpreter) {
-  var innerParser = interpreter.createParser(grammar.expression, interpreter);
+  var innerParser = interpreter.createParser(grammar.expression);
   
   this.parseNext = function(str, lastIterator) {
     var it = lastIterator ? { value: lastIterator.value, inner: lastIterator.inner } : { value: 'none', inner: null };
@@ -169,12 +169,12 @@ function GroupParser(grammar, interpreter) {
         var res = innerParser.parseNext(str, it.inner);
         if(res) {
           it.inner = res.iterator;
-          return { result: { type: 'group', option: 'select', length: res.result.length, value: res.result, str: res.result.str }, iterator: it };
+          return { result: { type: 'group', option: 'select', length: res.result.length, value: res.result, str: res.result.str, descriptor: grammar.descriptor }, iterator: it };
         }
         else {
           it.value = 'ignore';
           it.inner = null;
-          if(grammar.isOptional) return { type: 'group', result: { type: 'group', option: 'ignore', length: 0, str: '' }, iterator: it };
+          if(grammar.isOptional) return { /* type: 'group', ? */ result: { type: 'group', option: 'ignore', length: 0, str: '' }, iterator: it };
           else return;
         }
       case 'ignore': return;
@@ -183,7 +183,7 @@ function GroupParser(grammar, interpreter) {
 }
 
 function RepeatedTokenParser(grammar, interpreter) {
-  var innerParser = interpreter.createParser(grammar.item, interpreter);
+  var innerParser = interpreter.createParser(grammar.item);
   
   this.parseNext = function(str, lastIterator) {
     var it = lastIterator ? { stack: lastIterator.stack.concat([]) } : { stack: null };

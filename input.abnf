@@ -89,17 +89,17 @@ dummyStartRule = odataUri / header / primitiveValue ; just to please the test pa
 ;------------------------------------------------------------------------------
 
 
-odataUri = serviceRoot [ odataRelativeUri ]  
+odataUri = <| serviceRoot |>=serviceRoot [ <| odataRelativeUri |>=relativeUri ]  
 
 serviceRoot = ( "https" / "http" )                    ; Note: case-insensitive 
               "://" host [ ":" port ]
-              "/" *( segment-nz "/" )
+              "/" *( <| segment-nz |>=segment-nz "/" )
 
 odataRelativeUri = '$batch'                           ; Note: case-sensitive!
                  / '$entity' "?" entityOptions  
                  / '$entity' "/" qualifiedEntityTypeName "?" entityCastOptions  
                  / '$metadata' [ "?" format ] [ context ]
-                 / resourcePath [ "?" queryOptions ]
+                 / <| resourcePath |>=resourcePath [ "?" <| queryOptions |>=queryOptions ]
 
 
 ;------------------------------------------------------------------------------

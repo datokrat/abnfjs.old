@@ -22,7 +22,7 @@ ns.parseNextToken = function parseNextToken(str) {
   if(str[0] == ';') return parseComment(str);
   if(str[0] == '"' || str[0] == "'") return parseString(str);
   if(str[0] == '%') return parseCharCode(str);
-  return parseOperator(str) || parseIdentifier(str);
+  return parseDescriptorBracket(str) || parseOperator(str) || parseIdentifier(str);
 }
 
 ns.assignIdsToTokens = function assignIdsToTokens(tokens) {
@@ -65,6 +65,13 @@ function parseString(str) {
   return { type: 'string', value: value, caseSensitive: caseSensitive, length: length };
 }
 
+function parseDescriptorBracket(str) {
+  if(str.substr(0,2) === '<|')
+    return { type: 'descriptor-bracket', opening: true, length: 2 };
+  else if(str.substr(0,3) === '|>=')
+    return { type: 'descriptor-bracket', opening: false, length: 3 };
+}
+
 function parseCharCode(str) {
   if(str[1] == 'x') {
     str = str.substr(2);
@@ -83,7 +90,7 @@ function parseIdentifier(str) {
   var pattern = /^[A-Za-z][A-Za-z0-9\-]*/;
   var m = str.match(pattern);
   if(m) return { type: "identifier", value: m[0], length: m[0].length };
-  else throw new Error('identifier expected');
+  else throw new Error('identifier expected' + str.substr(0,20));
 }
 
 function parseOperator(str) {

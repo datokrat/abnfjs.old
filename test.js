@@ -12,8 +12,10 @@ console.log('par');
 var par = p.parse(tok);
 var inter = new i.Interpreter(par);
 
-var res = inter.getCompleteMatch(inter.getPattern('odataRelativeUri'), 'Posts?$filter=1 eq 1&$filter=1 eq 1');
-console.log(navi(res).nthNamedItem(0, 'resourcePath'));
+//console.log( par.odataUri.alternatives[0][0] );
+
+var res = inter.getCompleteMatch(inter.getPattern('odataUri'), 'http://example.com/a/b/Posts');
+console.log(navi(res).descriptors());
 //printx(res);
 console.log(res.str);
 
