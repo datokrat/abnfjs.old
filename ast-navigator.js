@@ -38,9 +38,11 @@ ExpressionNavigator.prototype.nthNamedItemOrThrow = function(n,name) {
 
 ExpressionNavigator.prototype.descriptors = function(dict, depth) {
   var ret = dict || {};
+  var depth = depth || 0;
+  if(this.ast.explicitExpression && depth++ == 1) return ret;
   for(var i=0; i<this.ast.value.sequence.length; ++i) {
     var item = this.nthItem(i);
-    item._descriptors(ret);
+    item._descriptors(ret, depth);
   }
   return ret;
 }
@@ -50,8 +52,7 @@ ExpressionNavigator.prototype._descriptors = function(dict, depth) {
   var depth = depth || 0;
   switch(this.ast.type) {
     case 'alternative':
-      if(this.ast.explicitExpression && depth++ == 1) return;
-      else this.descriptors(ret, depth);
+      this.descriptors(ret, depth);
       break;
     case 'group':
       if(this.ignored()) return;
