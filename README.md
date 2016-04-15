@@ -1,7 +1,7 @@
 # abnfjs
-A parser of ABNF code and an interpreter that parses code based on the parsed ABNF specification - a "parser generator" or "parser parser"...
+A JavaScript based parser of ABNF code and an interpreter that parses code based on the parsed ABNF specification - a "parser generator" or "parser parser". No Node Package Manager dependencies required.
 
-I'm afraid that this documentation is not very sophisticated, yet. If you have any questions please send me a message!
+I'm sorry that this documentation is not very sophisticated, yet. If you have any questions please don't hesitate to send me a message!
 
 # example
 ### grammar.abnf
